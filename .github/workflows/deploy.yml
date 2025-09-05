@@ -43,6 +43,8 @@ jobs:
 
     - name: Wait for EC2 to be ready
       run: sleep 30
+
+    - name: Deploy Flask app via SSH
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ env.PUBLIC_IP }}
