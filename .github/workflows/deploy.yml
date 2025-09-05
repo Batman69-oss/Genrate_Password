@@ -24,7 +24,7 @@ jobs:
       run: |
         INSTANCE_ID=$(aws ec2 run-instances \
           --image-id ami-04365bbdfe487ccf2 \
-          --instance-type t2.micro \
+          --instance-type t3.micro \
           --key-name ${{ secrets.KEY_PAIR_NAME }} \
           --security-groups flask-app-access \
           --query 'Instances[0].InstanceId' \
