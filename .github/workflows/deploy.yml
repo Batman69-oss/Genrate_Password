@@ -56,7 +56,7 @@ jobs:
     - name: Test the app
       run: |
         sleep 15
-        curl http://${{ 93.172.233.228 }}:5000/generate
+        curl http://${{ env.PUBLIC_IP }}:5000/generate
 
     - name: Terminate EC2 instance
       run: |
