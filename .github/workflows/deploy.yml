@@ -1,37 +1,65 @@
-name: CI/CD Pipeline
+name: Deploy Flask App to AWS EC2
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+        aws-region: us-east-1
 
-    - name: Build and push Docker image
+    - name: Launch EC2 instance
+      id: ec2
       run: |
-        docker build -t 239847234/project_cicd:tagname .
-        docker push 239847234/project_cicd:tagname
+        INSTANCE_ID=$(aws ec2 run-instances \
+          --image-id ami-0c02fb55956c7d316 \
+          --instance-type t2.micro \
+          --key-name ${{ secrets.KEY_PAIR_NAME }} \
+          --security-groups flask-app-access \
+          --query 'Instances[0].InstanceId' \
+          --output text)
 
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
+        echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+        aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --instance-ids $INSTANCE_ID \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+
+        echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+
+    - name: Deploy Flask app via SSH
+      uses: appleboy/ssh-action@v0.1.10
       with:
-        version: 'latest'
+        host: ${{ env.PUBLIC_IP }}
+        username: ubuntu
+        key: ${{ secrets.PRIVATE_KEY }}
+        script: |
+          sudo apt update
+          sudo apt install -y docker.io
+          docker pull batman69/genrate-password:latest
+          docker run -d -p 5000:5000 batman69/genrate-password:latest
 
-    - name: Deploy to Kubernetes
+    - name: Test the app
       run: |
-        kubectl apply -f deployment.yaml
-        kubectl apply -f load-balancer.yaml
+        sleep 15
+        curl http://${{ 93.172.233.228 }}:5000/generate
+
+    - name: Terminate EC2 instance
+      run: |
+        aws ec2 terminate-instances --instance-ids ${{ env.PUBLIC_IP }}
+        aws ec2 wait instance-terminated --instance-ids ${{ env.PUBLIC_IP }}
+
