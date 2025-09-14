@@ -46,7 +46,7 @@ jobs:
 
     - name: Wait for EC2 to be ready
       run: |
-        for i in {1..12}; do
+        for i in $(seq 1 12); do
           nc -zv ${{ env.PUBLIC_IP }} 22 && break
           echo "Waiting for SSH..."
           sleep 10
