@@ -41,8 +41,17 @@ jobs:
 
         echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
 
+    -name: Wait for EC2
+     run: sleep 30
+
     - name: Wait for EC2 to be ready
-      run: sleep 30
+      run: |
+        for i in {1..12}; do
+          nc -zv ${{ env.PUBLIC_IP }} 22 && break
+          echo "Waiting for SSH..."
+          sleep 10
+        done
+
 
     - name: Deploy Flask app via SSH
       uses: appleboy/ssh-action@v0.1.10
@@ -60,9 +69,3 @@ jobs:
       run: |
         sleep 15
         curl http://${{ env.PUBLIC_IP }}:5000/generate
-
-    - name: Terminate EC2 instance
-      if: always()
-      run: |
-        aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
-        aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
