@@ -69,3 +69,9 @@ jobs:
       run: |
         sleep 15
         curl http://${{ env.PUBLIC_IP }}:5000/generate
+
+    - name: Terminate EC2 instance
+      if: always()
+      run: |
+      aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
+      aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
