@@ -26,7 +26,7 @@ jobs:
           --image-id ami-04365bbdfe487ccf2 \
           --instance-type t3.micro \
           --key-name ${{ secrets.KEY_PAIR_NAME }} \
-          --security-groups sg-03311b57e0cda8d74 \
+          --security-group-ids sg-03311b57e0cda8d74 \
           --subnet-id subnet-090d5f4dd3137a324 \
           --associate-public-ip-address \
           --query 'Instances[0].InstanceId' \
