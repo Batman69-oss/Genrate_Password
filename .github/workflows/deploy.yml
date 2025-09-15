@@ -23,7 +23,7 @@ jobs:
       id: ec2
       run: |
         INSTANCE_ID=$(aws ec2 run-instances \
-          --image-id ami-04365bbdfe487ccf2 \
+          --image-id ami-053b0d53c279acc90 \
           --instance-type t3.micro \
           --key-name ${{ secrets.KEY_PAIR_NAME }} \
           --security-group-ids sg-03311b57e0cda8d74 \
@@ -62,10 +62,13 @@ jobs:
         username: ubuntu
         key: ${{ secrets.PRIVATE_KEY }}
         script: |
-          sudo apt update
-          sudo apt install -y docker.io
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sudo sh get-docker.sh
+          sudo systemctl start docker
+          sudo systemctl enable docker
           docker pull batman69/genrate-password:latest
           docker run -d -p 5000:5000 batman69/genrate-password:latest
+
 
     - name: Test the app
       run: |
