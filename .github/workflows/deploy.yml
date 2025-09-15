@@ -66,8 +66,8 @@ jobs:
           sudo sh get-docker.sh
           sudo systemctl start docker
           sudo systemctl enable docker
-          docker pull 239847234/project_cicd:tagname
-          docker run -d -p 5000:5000 239847234/project_cicd:tagname
+          sudo docker pull 239847234/project_cicd:tagname
+          sudo docker run -d -p 5000:5000 239847234/project_cicd:tagname
 
 
     - name: Test the app
