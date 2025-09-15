@@ -66,12 +66,11 @@ jobs:
           sudo sh get-docker.sh
           sudo systemctl start docker
           sudo systemctl enable docker
-          docker pull batman69/genrate-password:latest
-          docker run -d -p 5000:5000 batman69/genrate-password:latest
+          docker pull 239847234/project_cicd:tagname
+          docker run -d -p 5000:5000 239847234/project_cicd:tagname
 
 
     - name: Test the app
       run: |
         sleep 15
-        curl http://${{ env.PUBLIC_IP }}:5000/generate
-
+        curl http://${{ env.PUBLIC_IP }}:5000/generate-password?length=24
