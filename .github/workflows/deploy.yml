@@ -7,7 +7,8 @@ on:
       - dev
       - test
 jobs:
-  deploy:
+  local-test:
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test'
     runs-on: ubuntu-latest
 
     steps:
