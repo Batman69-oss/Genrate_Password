@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - test
+
 jobs:
   local-test:
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test'
@@ -15,16 +16,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Run Docker container locally
-      if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test'
+    - name: Build and run Docker container locally
       run: |
         docker build -t project_cicd .
         docker run -d -p 5000:5000 project_cicd
         sleep 10
-        curl http://localhost:5000/generate-password?length=24
+        curl --fail http://localhost:5000/generate-password?length=24
+
+  deploy-to-ec2:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
     - name: Configure AWS credentials
-      if: github.ref == 'refs/heads/main'
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
@@ -32,7 +39,6 @@ jobs:
         aws-region: us-east-1
 
     - name: Launch EC2 instance
-      if: github.ref == 'refs/heads/main'
       id: ec2
       run: |
         INSTANCE_ID=$(aws ec2 run-instances \
@@ -44,31 +50,22 @@ jobs:
           --associate-public-ip-address \
           --query 'Instances[0].InstanceId' \
           --output text)
-
         echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-
         aws ec2 wait instance-running --instance-ids $INSTANCE_ID
-
         PUBLIC_IP=$(aws ec2 describe-instances \
           --instance-ids $INSTANCE_ID \
           --query 'Reservations[0].Instances[0].PublicIpAddress' \
           --output text)
-
         echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
 
-    - name: Wait for EC2
-      if: github.ref == 'refs/heads/main'
-      run: sleep 30
-
     - name: Wait for EC2 to be ready
-      if: github.ref == 'refs/heads/main'
       run: |
+        sleep 30
         for i in $(seq 1 5); do
           nc -zv ${{ env.PUBLIC_IP }} 22 && break
           echo "Waiting for SSH..."
           sleep 10
         done
-
 
     - name: Deploy Flask app via SSH
       uses: appleboy/ssh-action@v0.1.10
@@ -84,9 +81,8 @@ jobs:
           sudo docker pull 239847234/project_cicd:tagname
           sudo docker run -d -p 5000:5000 239847234/project_cicd:tagname
 
-
     - name: Test the app
-      if: github.ref == 'refs/heads/main'
       run: |
         sleep 15
         curl http://${{ env.PUBLIC_IP }}:5000/generate-password?length=24
+
