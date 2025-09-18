@@ -21,9 +21,10 @@ jobs:
         docker build -t project_cicd .
         docker run -d -p 5000:5000 project_cicd
         sleep 10
-        curl http://localhost:5000/generate
+        curl http://localhost:5000/generate-password?length=24
 
     - name: Configure AWS credentials
+      if: github.ref == 'refs/heads/main'
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
@@ -56,9 +57,11 @@ jobs:
         echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
 
     - name: Wait for EC2
+      if: github.ref == 'refs/heads/main'
       run: sleep 30
 
     - name: Wait for EC2 to be ready
+      if: github.ref == 'refs/heads/main'
       run: |
         for i in $(seq 1 5); do
           nc -zv ${{ env.PUBLIC_IP }} 22 && break
@@ -83,6 +86,7 @@ jobs:
 
 
     - name: Test the app
+      if: github.ref == 'refs/heads/main'
       run: |
         sleep 15
         curl http://${{ env.PUBLIC_IP }}:5000/generate-password?length=24
